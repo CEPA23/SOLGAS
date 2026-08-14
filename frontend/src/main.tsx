@@ -1,0 +1,2 @@
+import React from 'react'; import { createRoot } from 'react-dom/client'; import { LoginPage } from './pages/LoginPage'; import { ForgotPasswordPage } from './pages/ForgotPasswordPage'; import { DashboardPage } from './pages/DashboardPage'; import './styles.css'; import './video.css'; import './dashboard.css';
+const path = window.location.pathname; const Page = path === '/forgot-password' ? ForgotPasswordPage : path === '/dashboard' ? DashboardPage : LoginPage; createRoot(document.getElementById('root')!).render(<React.StrictMode><Page /></React.StrictMode>);

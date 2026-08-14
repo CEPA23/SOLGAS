@@ -1,0 +1,2 @@
+import solgasLogo from '../../../img/solgas.png';
+export function ForgotPasswordPage() { return <main className="auth-shell"><section className="login-card placeholder"><img className="brand-logo" src={solgasLogo} alt="Solgas"/><h1>RECUPERAR CONTRASEÑA</h1><p className="subtitle">Esta opción estará disponible próximamente.</p><a className="back-link" href="/login">Volver al inicio de sesión</a></section></main>; }

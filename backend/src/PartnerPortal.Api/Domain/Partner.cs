@@ -1,0 +1,3 @@
+namespace PartnerPortal.Api.Domain;
+public sealed class Partner { public Guid Id { get; init; } = Guid.NewGuid(); public required string Ruc { get; init; } public required string BusinessName { get; init; } public string? TradeName { get; init; } public required string PasswordHash { get; set; } public bool IsActive { get; set; } = true; public DateTime CreatedAt { get; init; } = DateTime.UtcNow; public DateTime UpdatedAt { get; set; } = DateTime.UtcNow; public DateTime? LastLoginAt { get; set; } }
+public sealed record LoginAudit(Guid? PartnerId, string RucAttempted, bool Success, string IpAddress, string UserAgent, DateTime CreatedAt);

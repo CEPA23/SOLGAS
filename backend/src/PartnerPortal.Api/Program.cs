@@ -6,10 +6,11 @@ using PartnerPortal.Api.Domain;
 using PartnerPortal.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseUrls($"http://0.0.0.0:{Environment.GetEnvironmentVariable("PORT") ?? "8080"}");
 builder.Services.AddSingleton<IPartnerRepository, InMemoryPartnerRepository>();
 builder.Services.AddSingleton<ICaptchaStore, InMemoryCaptchaStore>();
 builder.Services.AddSingleton<CaptchaService>(); builder.Services.AddSingleton<SessionStore>(); builder.Services.AddSingleton<LoginAuditStore>(); builder.Services.AddSingleton<LoginRateLimiter>();
-builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
+builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Configuration["Cors:Origin"] ?? "http://localhost:5173").AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 var app = builder.Build(); app.UseCors();
 var partners = app.Services.GetRequiredService<IPartnerRepository>();
 var seedRuc = Environment.GetEnvironmentVariable("PARTNER_DEMO_RUC") ?? builder.Configuration["PartnerDemo:Ruc"]; var seedPassword = Environment.GetEnvironmentVariable("PARTNER_DEMO_PASSWORD") ?? builder.Configuration["PartnerDemo:Password"];

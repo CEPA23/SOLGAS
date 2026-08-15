@@ -1,4 +1,6 @@
-.auth-shell:before,.auth-shell:after{display:none}.auth-shell{background-image:none}.background-video{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.72) contrast(1.12) saturate(.8);z-index:0}.video-overlay{position:absolute;inset:0;background:rgba(11,34,101,.78);z-index:0;pointer-events:none}.auth-layout,footer{z-index:1}
+.auth-shell:before,.auth-shell:after{display:none}.auth-shell{background-image:none}.background-video{display:block;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:brightness(.65) contrast(1.1) saturate(.7);z-index:0}.video-overlay{position:absolute;inset:0;background:rgba(11,34,101,.88);z-index:0;pointer-events:none}.auth-layout,footer{z-index:1}
 .registration-links>a:first-child{display:none}
 .login-form .field input{font-family:"Segoe UI",Arial,sans-serif;font-size:20px;font-weight:300}.login-form .field input::placeholder{color:#586673;font-weight:300;opacity:1}
 mark{background:#fff200;color:inherit;padding:2px 4px}
+.captcha-row{grid-template-columns:1fr 1fr}
+@media(max-width:390px){.captcha-row{grid-template-columns:1fr 1fr}}

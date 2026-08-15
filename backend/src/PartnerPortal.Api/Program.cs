@@ -6,7 +6,6 @@ using PartnerPortal.Api.Domain;
 using PartnerPortal.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls($"http://0.0.0.0:{Environment.GetEnvironmentVariable("PORT") ?? "8080"}");
 builder.Services.AddSingleton<IPartnerRepository, InMemoryPartnerRepository>();
 builder.Services.AddSingleton<ICaptchaStore, InMemoryCaptchaStore>();
 builder.Services.AddSingleton<CaptchaService>(); builder.Services.AddSingleton<SessionStore>(); builder.Services.AddSingleton<LoginAuditStore>(); builder.Services.AddSingleton<LoginRateLimiter>();
@@ -14,7 +13,7 @@ builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.WithOrigins(builder.Conf
 var app = builder.Build(); app.UseCors();
 var partners = app.Services.GetRequiredService<IPartnerRepository>();
 var seedRuc = Environment.GetEnvironmentVariable("PARTNER_DEMO_RUC") ?? builder.Configuration["PartnerDemo:Ruc"]; var seedPassword = Environment.GetEnvironmentVariable("PARTNER_DEMO_PASSWORD") ?? builder.Configuration["PartnerDemo:Password"];
-if (!string.IsNullOrWhiteSpace(seedRuc) && !string.IsNullOrWhiteSpace(seedPassword) && !partners.Exists(seedRuc)) partners.Save(new Partner { Ruc=seedRuc, BusinessName="Distribuidora Demo S.A.C.", PasswordHash=global::BCrypt.Net.BCrypt.HashPassword(seedPassword, workFactor:12) });
+if (!string.IsNullOrWhiteSpace(seedRuc) && !string.IsNullOrWhiteSpace(seedPassword) && !partners.Exists(seedRuc)) partners.Save(new Partner { Ruc=seedRuc, BusinessName="NEGOCIOS Y TRANSPORTES PIZAN EIRL", PasswordHash=global::BCrypt.Net.BCrypt.HashPassword(seedPassword, workFactor:12) });
 
 app.MapGet("/api/auth/captcha", (CaptchaService captcha) => Results.Ok(captcha.Create()));
 app.MapPost("/api/auth/login", (LoginRequest request, HttpContext http, IPartnerRepository repo, CaptchaService captcha, SessionStore sessions, LoginAuditStore audits, LoginRateLimiter limiter) => {
@@ -31,5 +30,5 @@ app.MapGet("/api/auth/me", (HttpContext http, IPartnerRepository repo, SessionSt
 app.MapPost("/api/auth/logout", (HttpContext http, SessionStore sessions) => { if(http.Request.Cookies.TryGetValue("access_token",out var token)) sessions.Remove(token); http.Response.Cookies.Delete("access_token"); http.Response.Cookies.Delete("refresh_token"); return Results.Ok(new { success=true }); });
 app.Run();
 static string TokenHash(string value) => Convert.ToHexString(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(value)));
-static void Cookie(HttpContext http,string name,string value,TimeSpan age) => http.Response.Cookies.Append(name,value,new CookieOptions { HttpOnly=true, Secure=http.Request.IsHttps, SameSite=SameSiteMode.Lax, MaxAge=age, Path="/" });
+static void Cookie(HttpContext http,string name,string value,TimeSpan age) { var production = string.Equals(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT"), "Production", StringComparison.OrdinalIgnoreCase); http.Response.Cookies.Append(name,value,new CookieOptions { HttpOnly=true, Secure=production || http.Request.IsHttps, SameSite=production || http.Request.IsHttps ? SameSiteMode.None : SameSiteMode.Lax, MaxAge=age, Path="/" }); }
 static class PartnerRepositoryExtensions { public static bool Exists(this IPartnerRepository repo,string ruc) => repo.FindByRuc(ruc) is not null; public static Partner? FindById(this IPartnerRepository repo,Guid id) => repo is InMemoryPartnerRepository memory ? memory.FindById(id) : null; }

@@ -2,7 +2,7 @@ const BACKEND_ORIGIN = 'https://solgas.onrender.com';
 
 export async function onRequest(context) {
   const incomingUrl = new URL(context.request.url);
-  const backendUrl = new URL(incomingUrl.pathname.replace(/^\/api/, '') || '/', BACKEND_ORIGIN);
+  const backendUrl = new URL(incomingUrl.pathname || '/', BACKEND_ORIGIN);
   backendUrl.search = incomingUrl.search;
 
   const headers = new Headers(context.request.headers);

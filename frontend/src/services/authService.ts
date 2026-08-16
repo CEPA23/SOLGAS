@@ -1,4 +1,4 @@
-import type { Captcha, LoginRequest, Partner } from '../types/auth';
+import type { Captcha, Compensation, CompensationExecution, LoginRequest, Partner } from '../types/auth';
 const API = import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:5080' : '/api');
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const requestPath = API.endsWith('/api') ? path.replace(/^\/api/, '') : path;
@@ -11,5 +11,7 @@ export const authService = {
   captcha: () => request<Captcha>('/api/auth/captcha'),
   login: (data: LoginRequest) => request<{ success: boolean; partner: Partner }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   me: () => request<{ partner: Partner }>('/api/auth/me'),
+  compensation: () => request<Compensation>('/api/compensation'),
+  executeCompensation: (invoiceId: string, creditIds: string[]) => request<CompensationExecution>('/api/compensation/execute', { method: 'POST', body: JSON.stringify({ invoiceId, creditIds }) }),
   logout: () => request('/api/auth/logout', { method: 'POST' })
 };

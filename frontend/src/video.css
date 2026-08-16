@@ -4,3 +4,4 @@
 mark{background:#fff200;color:inherit;padding:2px 4px}
 .captcha-row{grid-template-columns:1fr 1fr}
 @media(max-width:390px){.captcha-row{grid-template-columns:1fr 1fr}}
+.compensation-content h1 img{width:30px;height:30px}

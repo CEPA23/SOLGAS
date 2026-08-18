@@ -12,6 +12,6 @@ export const authService = {
   login: (data: LoginRequest) => request<{ success: boolean; partner: Partner }>('/api/auth/login', { method: 'POST', body: JSON.stringify(data) }),
   me: () => request<{ partner: Partner }>('/api/auth/me'),
   compensation: () => request<Compensation>('/api/compensation'),
-  executeCompensation: (invoiceId: string, creditIds: string[]) => request<CompensationExecution>('/api/compensation/execute', { method: 'POST', body: JSON.stringify({ invoiceId, creditIds }) }),
+  executeCompensation: (invoiceIds: string[], creditIds: string[], observation?: string) => request<CompensationExecution>('/api/compensation/execute', { method: 'POST', body: JSON.stringify({ invoiceIds, creditIds, observation, idempotencyKey: crypto.randomUUID() }) }),
   logout: () => request('/api/auth/logout', { method: 'POST' })
 };

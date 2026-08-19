@@ -1,7 +1,7 @@
 namespace PartnerPortal.Api.Application;
 
 public sealed record CompensationCreditResponse(string Id, string Reference, string DocumentType, DateTime Date, decimal OriginalAmount, decimal AvailableAmount);
-public sealed record CompensationInvoiceResponse(string Id, string Reference, DateTime IssueDate, DateTime DueDate, decimal TotalAmount, decimal PendingAmount, string Status, bool IsOverdue);
+public sealed record CompensationInvoiceResponse(string Id, string Reference, string DocumentType, DateTime IssueDate, DateTime DueDate, decimal TotalAmount, decimal Perception, decimal PendingAmount, string Status, bool IsOverdue);
 public sealed record CompensationResponse(decimal TotalAvailableCredit, decimal TotalDebt, decimal OverdueDebt, IReadOnlyList<CompensationInvoiceResponse> Invoices, IReadOnlyList<CompensationCreditResponse> Credits);
 public sealed record ExecuteCompensationRequest(IReadOnlyList<string> InvoiceIds, string? Observation, string? IdempotencyKey, IReadOnlyList<string>? CreditIds = null);
 public sealed record CompensationInvoiceExecution(string InvoiceId, decimal AppliedAmount, decimal PendingAmount, string Status);

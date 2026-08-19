@@ -33,6 +33,8 @@ public sealed class CompensationStore
         """; cmd.ExecuteNonQuery();
         AddColumnIfMissing(c, "Invoices", "IssueDate", "TEXT NOT NULL DEFAULT '2026-08-11T00:00:00.0000000Z'");
         AddColumnIfMissing(c, "Invoices", "DueDate", "TEXT NOT NULL DEFAULT '2026-08-30T00:00:00.0000000Z'");
+        AddColumnIfMissing(c, "Invoices", "DocumentType", "TEXT NOT NULL DEFAULT 'Factura'");
+        AddColumnIfMissing(c, "Invoices", "Perception", "NUMERIC NOT NULL DEFAULT 0");
         AddColumnIfMissing(c, "Invoices", "Status", "TEXT NOT NULL DEFAULT 'PENDING'");
     }
     private static void AddColumnIfMissing(SqliteConnection c, string table, string column, string definition)
@@ -51,21 +53,29 @@ public sealed class CompensationStore
                 using var removeDemoInvoices = c.CreateCommand(); removeDemoInvoices.Transaction = tx; removeDemoInvoices.CommandText = "DELETE FROM Invoices WHERE PartnerId=$p AND Reference IN ('01-F326-00085995','01-F326-00085996') AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id)"; removeDemoInvoices.Parameters.AddWithValue("$p", partnerId.ToString()); removeDemoInvoices.ExecuteNonQuery();
             }
             using (var migrateDemoBalance = c.CreateCommand()) { migrateDemoBalance.Transaction = tx; migrateDemoBalance.CommandText = "UPDATE Credits SET OriginalAmount=314262.58,AvailableAmount=314262.58 WHERE PartnerId=$p AND Reference='Sin ref.' AND DocumentType='Saldo a favor' AND OriginalAmount=314000 AND NOT EXISTS (SELECT 1 FROM Compensations c WHERE c.PartnerId=Credits.PartnerId)"; migrateDemoBalance.Parameters.AddWithValue("$p", partnerId.ToString()); migrateDemoBalance.ExecuteNonQuery(); }
+            using (var updateBalanceDate = c.CreateCommand()) { updateBalanceDate.Transaction = tx; updateBalanceDate.CommandText = "UPDATE Credits SET DocumentDate='2026-08-19T00:00:00.0000000' WHERE PartnerId=$p AND Reference='Sin ref.' AND DocumentType='Saldo a favor'"; updateBalanceDate.Parameters.AddWithValue("$p", partnerId.ToString()); updateBalanceDate.ExecuteNonQuery(); }
+            using (var updateRequestedInvoices = c.CreateCommand()) { updateRequestedInvoices.Transaction = tx; updateRequestedInvoices.CommandText = "UPDATE Invoices SET TotalAmount=$t1, PendingAmount=$t1, Perception=$p1, IssueDate='2026-08-19T00:00:00.0000000', DueDate='2026-08-20T00:00:00.0000000' WHERE PartnerId=$p AND Reference='01-F326-00086403' AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id); UPDATE Invoices SET TotalAmount=$t2, PendingAmount=$t2, Perception=$p2, IssueDate='2026-08-19T00:00:00.0000000', DueDate='2026-08-20T00:00:00.0000000' WHERE PartnerId=$p AND Reference='01-F326-00086404' AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id);"; updateRequestedInvoices.Parameters.AddWithValue("$p", partnerId.ToString()); updateRequestedInvoices.Parameters.AddWithValue("$t1", 6624.90m); updateRequestedInvoices.Parameters.AddWithValue("$p1", 129.90m); updateRequestedInvoices.Parameters.AddWithValue("$t2", 6181.21m); updateRequestedInvoices.Parameters.AddWithValue("$p2", 121.20m); updateRequestedInvoices.ExecuteNonQuery(); }
             if (Convert.ToInt32(exists.ExecuteScalar()) == 0)
             {
                 if (includeDemoInvoices)
                 {
-                    InsertInvoice(c, tx, partnerId, "01-F326-00085995", new DateTime(2026, 8, 11), new DateTime(2026, 8, 30), 20000m);
-                    InsertInvoice(c, tx, partnerId, "01-F326-00085996", new DateTime(2026, 8, 12), new DateTime(2026, 8, 31), 20000m);
+                    InsertInvoice(c, tx, partnerId, "01-F326-00085995", new DateTime(2026, 8, 11), new DateTime(2026, 8, 30), 20000m, 0m);
+                    InsertInvoice(c, tx, partnerId, "01-F326-00085996", new DateTime(2026, 8, 12), new DateTime(2026, 8, 31), 20000m, 0m);
                 }
                 InsertCredit(c, tx, partnerId, "Sin ref.", "Saldo a favor", new DateTime(2026, 8, 11), 314262.58m);
                 InsertCredit(c, tx, partnerId, "SALDO-A-FAVOR", "Depósito bancario", new DateTime(2026, 8, 13), 30000m);
                 InsertCredit(c, tx, partnerId, "SALDO-A-FAVOR", "Depósito bancario", new DateTime(2026, 8, 13), 30000m);
             }
+            if (!includeDemoInvoices)
+            {
+                InsertInvoiceIfMissing(c, tx, partnerId, "01-F326-00086403", new DateTime(2026, 8, 19), new DateTime(2026, 8, 20), 6495.00m, 129.9m);
+                InsertInvoiceIfMissing(c, tx, partnerId, "01-F326-00086404", new DateTime(2026, 8, 19), new DateTime(2026, 8, 20), 6060.01m, 121.2m);
+            }
             tx.Commit();
         }
     }
-    private static void InsertInvoice(SqliteConnection c, SqliteTransaction tx, Guid partnerId, string reference, DateTime issue, DateTime due, decimal amount) { using var cmd=c.CreateCommand(); cmd.Transaction=tx; cmd.CommandText="INSERT INTO Invoices(Id,PartnerId,Reference,TotalAmount,PendingAmount,IssueDate,DueDate,Status) VALUES($id,$p,$r,$t,$t,$issue,$due,'PENDING')"; cmd.Parameters.AddWithValue("$id",Guid.NewGuid().ToString()); cmd.Parameters.AddWithValue("$p",partnerId.ToString()); cmd.Parameters.AddWithValue("$r",reference); cmd.Parameters.AddWithValue("$t",amount); cmd.Parameters.AddWithValue("$issue",issue.ToString("O")); cmd.Parameters.AddWithValue("$due",due.ToString("O")); cmd.ExecuteNonQuery(); }
+    private static void InsertInvoice(SqliteConnection c, SqliteTransaction tx, Guid partnerId, string reference, DateTime issue, DateTime due, decimal amount, decimal perception) { var total = amount + perception; using var cmd=c.CreateCommand(); cmd.Transaction=tx; cmd.CommandText="INSERT INTO Invoices(Id,PartnerId,Reference,DocumentType,TotalAmount,Perception,PendingAmount,IssueDate,DueDate,Status) VALUES($id,$p,$r,'Factura',$total,$perception,$total,$issue,$due,'PENDING')"; cmd.Parameters.AddWithValue("$id",Guid.NewGuid().ToString()); cmd.Parameters.AddWithValue("$p",partnerId.ToString()); cmd.Parameters.AddWithValue("$r",reference); cmd.Parameters.AddWithValue("$total",total); cmd.Parameters.AddWithValue("$perception",perception); cmd.Parameters.AddWithValue("$issue",issue.ToString("O")); cmd.Parameters.AddWithValue("$due",due.ToString("O")); cmd.ExecuteNonQuery(); }
+    private static void InsertInvoiceIfMissing(SqliteConnection c, SqliteTransaction tx, Guid partnerId, string reference, DateTime issue, DateTime due, decimal amount, decimal perception) { using var check=c.CreateCommand(); check.Transaction=tx; check.CommandText="SELECT COUNT(*) FROM Invoices WHERE PartnerId=$p AND Reference=$r"; check.Parameters.AddWithValue("$p",partnerId.ToString()); check.Parameters.AddWithValue("$r",reference); if(Convert.ToInt32(check.ExecuteScalar())==0) InsertInvoice(c,tx,partnerId,reference,issue,due,amount,perception); }
     private static void InsertCredit(SqliteConnection c, SqliteTransaction tx, Guid partnerId, string reference, string type, DateTime date, decimal amount) { using var cmd=c.CreateCommand(); cmd.Transaction=tx; cmd.CommandText="INSERT INTO Credits VALUES($id,$p,$r,$t,$d,$o,$o)"; cmd.Parameters.AddWithValue("$id",Guid.NewGuid().ToString()); cmd.Parameters.AddWithValue("$p",partnerId.ToString()); cmd.Parameters.AddWithValue("$r",reference); cmd.Parameters.AddWithValue("$t",type); cmd.Parameters.AddWithValue("$d",date.ToString("O")); cmd.Parameters.AddWithValue("$o",amount); cmd.ExecuteNonQuery(); }
 
     public CompensationResponse Get(Guid partnerId)
@@ -73,7 +83,7 @@ public sealed class CompensationStore
         lock (sync)
         {
             using var c=Open(); var today=DateTime.UtcNow.Date; var invoices=new List<CompensationInvoiceResponse>();
-            using(var cmd=c.CreateCommand()) { cmd.CommandText="SELECT Id,Reference,IssueDate,DueDate,TotalAmount,PendingAmount,Status FROM Invoices WHERE PartnerId=$p AND PendingAmount>0 AND Status NOT IN ('PAID','CANCELLED','COMPENSATED') ORDER BY DueDate,Id"; cmd.Parameters.AddWithValue("$p",partnerId.ToString()); using var r=cmd.ExecuteReader(); while(r.Read()){var due=DateTime.Parse(r.GetString(3)); invoices.Add(new(r.GetString(0),r.GetString(1),DateTime.Parse(r.GetString(2)),due,r.GetDecimal(4),r.GetDecimal(5),r.GetString(6),due.Date<today));} }
+            using(var cmd=c.CreateCommand()) { cmd.CommandText="SELECT Id,Reference,DocumentType,IssueDate,DueDate,TotalAmount,Perception,PendingAmount,Status FROM Invoices WHERE PartnerId=$p AND PendingAmount>0 AND Status NOT IN ('PAID','CANCELLED','COMPENSATED') ORDER BY DueDate,Id"; cmd.Parameters.AddWithValue("$p",partnerId.ToString()); using var r=cmd.ExecuteReader(); while(r.Read()){var due=DateTime.Parse(r.GetString(4)); invoices.Add(new(r.GetString(0),r.GetString(1),r.GetString(2),DateTime.Parse(r.GetString(3)),due,r.GetDecimal(5),r.GetDecimal(6),r.GetDecimal(7),r.GetString(8),due.Date<today));} }
             var credits=new List<CompensationCreditResponse>(); using(var cmd=c.CreateCommand()){cmd.CommandText="SELECT Id,Reference,DocumentType,DocumentDate,OriginalAmount,AvailableAmount FROM Credits WHERE PartnerId=$p AND AvailableAmount>0 ORDER BY DocumentDate,Id";cmd.Parameters.AddWithValue("$p",partnerId.ToString());using var r=cmd.ExecuteReader();while(r.Read())credits.Add(new(r.GetString(0),r.GetString(1),r.GetString(2),DateTime.Parse(r.GetString(3)),r.GetDecimal(4),r.GetDecimal(5)));}
             return new(credits.Sum(x=>x.AvailableAmount),invoices.Sum(x=>x.PendingAmount),invoices.Where(x=>x.IsOverdue).Sum(x=>x.PendingAmount),invoices,credits);
         }

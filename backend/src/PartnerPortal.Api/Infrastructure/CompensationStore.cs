@@ -41,15 +41,22 @@ public sealed class CompensationStore
         using var alter = c.CreateCommand(); alter.CommandText = $"ALTER TABLE {table} ADD COLUMN {column} {definition}"; alter.ExecuteNonQuery();
     }
 
-    public void SeedDemoData(Guid partnerId)
+    public void SeedDemoData(Guid partnerId, bool includeDemoInvoices = true)
     {
         lock (sync)
         {
             using var c = Open(); using var tx = c.BeginTransaction(); using var exists = c.CreateCommand(); exists.Transaction = tx; exists.CommandText = "SELECT COUNT(*) FROM Credits WHERE PartnerId=$p"; exists.Parameters.AddWithValue("$p", partnerId.ToString());
+            if (!includeDemoInvoices)
+            {
+                using var removeDemoInvoices = c.CreateCommand(); removeDemoInvoices.Transaction = tx; removeDemoInvoices.CommandText = "DELETE FROM Invoices WHERE PartnerId=$p AND Reference IN ('01-F326-00085995','01-F326-00085996') AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id)"; removeDemoInvoices.Parameters.AddWithValue("$p", partnerId.ToString()); removeDemoInvoices.ExecuteNonQuery();
+            }
             if (Convert.ToInt32(exists.ExecuteScalar()) == 0)
             {
-                InsertInvoice(c, tx, partnerId, "01-F326-00085995", new DateTime(2026, 8, 11), new DateTime(2026, 8, 30), 20000m);
-                InsertInvoice(c, tx, partnerId, "01-F326-00085996", new DateTime(2026, 8, 12), new DateTime(2026, 8, 31), 20000m);
+                if (includeDemoInvoices)
+                {
+                    InsertInvoice(c, tx, partnerId, "01-F326-00085995", new DateTime(2026, 8, 11), new DateTime(2026, 8, 30), 20000m);
+                    InsertInvoice(c, tx, partnerId, "01-F326-00085996", new DateTime(2026, 8, 12), new DateTime(2026, 8, 31), 20000m);
+                }
                 InsertCredit(c, tx, partnerId, "Sin ref.", "Saldo a favor", new DateTime(2026, 8, 11), 314000m);
                 InsertCredit(c, tx, partnerId, "SALDO-A-FAVOR", "Depósito bancario", new DateTime(2026, 8, 13), 30000m);
                 InsertCredit(c, tx, partnerId, "SALDO-A-FAVOR", "Depósito bancario", new DateTime(2026, 8, 13), 30000m);

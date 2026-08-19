@@ -14,7 +14,7 @@ var app = builder.Build(); app.UseCors();
 var partners = app.Services.GetRequiredService<IPartnerRepository>();
 var seedRuc = Environment.GetEnvironmentVariable("PARTNER_DEMO_RUC") ?? builder.Configuration["PartnerDemo:Ruc"]; var seedPassword = Environment.GetEnvironmentVariable("PARTNER_DEMO_PASSWORD") ?? builder.Configuration["PartnerDemo:Password"];
 if (!string.IsNullOrWhiteSpace(seedRuc) && !string.IsNullOrWhiteSpace(seedPassword) && !partners.Exists(seedRuc)) partners.Save(new Partner { Ruc=seedRuc, BusinessName="NEGOCIOS Y TRANSPORTES PIZAN EIRL", PasswordHash=global::BCrypt.Net.BCrypt.HashPassword(seedPassword, workFactor:12) });
-var compensationStore = app.Services.GetRequiredService<CompensationStore>(); var seededPartner = partners.FindByRuc(seedRuc ?? ""); if (seededPartner is not null) compensationStore.SeedDemoData(seededPartner.Id);
+var compensationStore = app.Services.GetRequiredService<CompensationStore>(); var seededPartner = partners.FindByRuc(seedRuc ?? ""); if (seededPartner is not null) compensationStore.SeedDemoData(seededPartner.Id, includeDemoInvoices: false);
 
 app.MapGet("/api/auth/captcha", (CaptchaService captcha) => Results.Ok(captcha.Create()));
 app.MapPost("/api/auth/login", (LoginRequest request, HttpContext http, IPartnerRepository repo, CaptchaService captcha, SessionStore sessions, LoginAuditStore audits, LoginRateLimiter limiter) => {

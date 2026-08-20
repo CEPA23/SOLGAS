@@ -5,7 +5,7 @@ using PartnerPortal.Api.Application;
 using PartnerPortal.Api.Domain;
 using PartnerPortal.Api.Infrastructure;
 
-// Deployment marker: 2026-08-19-demo-data-refresh
+// Deployment marker: 2026-08-20-compensation-demo-refresh
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddSingleton<IPartnerRepository, InMemoryPartnerRepository>(); builder.Services.AddSingleton<CompensationStore>();
 builder.Services.AddSingleton<ICaptchaStore, InMemoryCaptchaStore>();

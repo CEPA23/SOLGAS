@@ -51,6 +51,7 @@ public sealed class CompensationStore
             if (!includeDemoInvoices)
             {
                 using var removeDemoInvoices = c.CreateCommand(); removeDemoInvoices.Transaction = tx; removeDemoInvoices.CommandText = "DELETE FROM Invoices WHERE PartnerId=$p AND Reference IN ('01-F326-00085995','01-F326-00085996') AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id)"; removeDemoInvoices.Parameters.AddWithValue("$p", partnerId.ToString()); removeDemoInvoices.ExecuteNonQuery();
+                using var removeReplacedInvoices = c.CreateCommand(); removeReplacedInvoices.Transaction = tx; removeReplacedInvoices.CommandText = "DELETE FROM Invoices WHERE PartnerId=$p AND Reference IN ('01-F326-00086403','01-F326-00086404') AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id)"; removeReplacedInvoices.Parameters.AddWithValue("$p", partnerId.ToString()); removeReplacedInvoices.ExecuteNonQuery();
             }
             using (var migrateDemoBalance = c.CreateCommand()) { migrateDemoBalance.Transaction = tx; migrateDemoBalance.CommandText = "UPDATE Credits SET OriginalAmount=314262.58,AvailableAmount=314262.58 WHERE PartnerId=$p AND Reference='Sin ref.' AND DocumentType='Saldo a favor' AND OriginalAmount=314000 AND NOT EXISTS (SELECT 1 FROM Compensations c WHERE c.PartnerId=Credits.PartnerId)"; migrateDemoBalance.Parameters.AddWithValue("$p", partnerId.ToString()); migrateDemoBalance.ExecuteNonQuery(); }
             using (var updateBalanceDate = c.CreateCommand()) { updateBalanceDate.Transaction = tx; updateBalanceDate.CommandText = "UPDATE Credits SET DocumentDate='2026-08-19T00:00:00.0000000' WHERE PartnerId=$p AND Reference='Sin ref.' AND DocumentType='Saldo a favor'"; updateBalanceDate.Parameters.AddWithValue("$p", partnerId.ToString()); updateBalanceDate.ExecuteNonQuery(); }
@@ -68,8 +69,8 @@ public sealed class CompensationStore
             }
             if (!includeDemoInvoices)
             {
-                InsertInvoiceIfMissing(c, tx, partnerId, "01-F326-00086403", new DateTime(2026, 8, 19), new DateTime(2026, 8, 20), 6495.00m, 129.9m);
-                InsertInvoiceIfMissing(c, tx, partnerId, "01-F326-00086404", new DateTime(2026, 8, 19), new DateTime(2026, 8, 20), 6060.01m, 121.2m);
+                InsertInvoiceIfMissing(c, tx, partnerId, "01-F326-00086472", new DateTime(2026, 8, 20), new DateTime(2026, 8, 21), 21300.00m, 426.00m);
+                InsertInvoiceIfMissing(c, tx, partnerId, "01-F326-00086473", new DateTime(2026, 8, 20), new DateTime(2026, 8, 21), 18976.62m, 379.53m);
             }
             tx.Commit();
         }

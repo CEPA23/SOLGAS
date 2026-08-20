@@ -51,10 +51,14 @@ public sealed class CompensationStore
             if (!includeDemoInvoices)
             {
                 using var removeDemoInvoices = c.CreateCommand(); removeDemoInvoices.Transaction = tx; removeDemoInvoices.CommandText = "DELETE FROM Invoices WHERE PartnerId=$p AND Reference IN ('01-F326-00085995','01-F326-00085996') AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id)"; removeDemoInvoices.Parameters.AddWithValue("$p", partnerId.ToString()); removeDemoInvoices.ExecuteNonQuery();
-                using var removeReplacedInvoices = c.CreateCommand(); removeReplacedInvoices.Transaction = tx; removeReplacedInvoices.CommandText = "DELETE FROM Invoices WHERE PartnerId=$p AND Reference IN ('01-F326-00086403','01-F326-00086404') AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id)"; removeReplacedInvoices.Parameters.AddWithValue("$p", partnerId.ToString()); removeReplacedInvoices.ExecuteNonQuery();
+                using var removeReplacedInvoices = c.CreateCommand(); removeReplacedInvoices.Transaction = tx; removeReplacedInvoices.CommandText = "DELETE FROM Invoices WHERE PartnerId=$p AND Reference IN ('01-F326-00086403','01-F326-00086404','01-F326-00086472','01-F326-00086473') AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id)"; removeReplacedInvoices.Parameters.AddWithValue("$p", partnerId.ToString()); removeReplacedInvoices.ExecuteNonQuery();
             }
             using (var migrateDemoBalance = c.CreateCommand()) { migrateDemoBalance.Transaction = tx; migrateDemoBalance.CommandText = "UPDATE Credits SET OriginalAmount=314262.58,AvailableAmount=314262.58 WHERE PartnerId=$p AND Reference='Sin ref.' AND DocumentType='Saldo a favor' AND OriginalAmount=314000 AND NOT EXISTS (SELECT 1 FROM Compensations c WHERE c.PartnerId=Credits.PartnerId)"; migrateDemoBalance.Parameters.AddWithValue("$p", partnerId.ToString()); migrateDemoBalance.ExecuteNonQuery(); }
             using (var updateBalanceDate = c.CreateCommand()) { updateBalanceDate.Transaction = tx; updateBalanceDate.CommandText = "UPDATE Credits SET DocumentDate='2026-08-19T00:00:00.0000000' WHERE PartnerId=$p AND Reference='Sin ref.' AND DocumentType='Saldo a favor'"; updateBalanceDate.Parameters.AddWithValue("$p", partnerId.ToString()); updateBalanceDate.ExecuteNonQuery(); }
+            if (!includeDemoInvoices)
+            {
+                using var normalizeDemoCredits = c.CreateCommand(); normalizeDemoCredits.Transaction = tx; normalizeDemoCredits.CommandText = "UPDATE Credits SET OriginalAmount=361456.47, AvailableAmount=361456.47, DocumentDate='2026-08-20T00:00:00.0000000' WHERE PartnerId=$p AND Reference='Sin ref.' AND DocumentType='Saldo a favor' AND NOT EXISTS (SELECT 1 FROM Compensations c WHERE c.PartnerId=Credits.PartnerId); UPDATE Credits SET AvailableAmount=0 WHERE PartnerId=$p AND DocumentType<>'Saldo a favor' AND NOT EXISTS (SELECT 1 FROM Compensations c WHERE c.PartnerId=Credits.PartnerId);"; normalizeDemoCredits.Parameters.AddWithValue("$p", partnerId.ToString()); normalizeDemoCredits.ExecuteNonQuery();
+            }
             using (var updateRequestedInvoices = c.CreateCommand()) { updateRequestedInvoices.Transaction = tx; updateRequestedInvoices.CommandText = "UPDATE Invoices SET TotalAmount=$t1, PendingAmount=$t1, Perception=$p1, IssueDate='2026-08-19T00:00:00.0000000', DueDate='2026-08-20T00:00:00.0000000' WHERE PartnerId=$p AND Reference='01-F326-00086403' AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id); UPDATE Invoices SET TotalAmount=$t2, PendingAmount=$t2, Perception=$p2, IssueDate='2026-08-19T00:00:00.0000000', DueDate='2026-08-20T00:00:00.0000000' WHERE PartnerId=$p AND Reference='01-F326-00086404' AND Status='PENDING' AND NOT EXISTS (SELECT 1 FROM CompensationInvoices ci WHERE ci.InvoiceId=Invoices.Id);"; updateRequestedInvoices.Parameters.AddWithValue("$p", partnerId.ToString()); updateRequestedInvoices.Parameters.AddWithValue("$t1", 6624.90m); updateRequestedInvoices.Parameters.AddWithValue("$p1", 129.90m); updateRequestedInvoices.Parameters.AddWithValue("$t2", 6181.21m); updateRequestedInvoices.Parameters.AddWithValue("$p2", 121.20m); updateRequestedInvoices.ExecuteNonQuery(); }
             if (Convert.ToInt32(exists.ExecuteScalar()) == 0)
             {
@@ -63,9 +67,12 @@ public sealed class CompensationStore
                     InsertInvoice(c, tx, partnerId, "01-F326-00085995", new DateTime(2026, 8, 11), new DateTime(2026, 8, 30), 20000m, 0m);
                     InsertInvoice(c, tx, partnerId, "01-F326-00085996", new DateTime(2026, 8, 12), new DateTime(2026, 8, 31), 20000m, 0m);
                 }
-                InsertCredit(c, tx, partnerId, "Sin ref.", "Saldo a favor", new DateTime(2026, 8, 19), 314262.58m);
-                InsertCredit(c, tx, partnerId, "SALDO-A-FAVOR", "Depósito bancario", new DateTime(2026, 8, 13), 30000m);
-                InsertCredit(c, tx, partnerId, "SALDO-A-FAVOR", "Depósito bancario", new DateTime(2026, 8, 13), 30000m);
+                InsertCredit(c, tx, partnerId, "Sin ref.", "Saldo a favor", includeDemoInvoices ? new DateTime(2026, 8, 19) : new DateTime(2026, 8, 20), includeDemoInvoices ? 314262.58m : 361456.47m);
+                if (includeDemoInvoices)
+                {
+                    InsertCredit(c, tx, partnerId, "SALDO-A-FAVOR", "Depósito bancario", new DateTime(2026, 8, 13), 30000m);
+                    InsertCredit(c, tx, partnerId, "SALDO-A-FAVOR", "Depósito bancario", new DateTime(2026, 8, 13), 30000m);
+                }
             }
             if (!includeDemoInvoices)
             {

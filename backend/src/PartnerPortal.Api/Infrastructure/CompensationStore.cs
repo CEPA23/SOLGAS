@@ -127,6 +127,7 @@ public sealed class CompensationStore
                     }
                 }
             }
+            // Deployment marker: refresh remaining credit date after compensation.
             using (var refreshRemainingCreditDate = c.CreateCommand())
             {
                 refreshRemainingCreditDate.Transaction = tx;
